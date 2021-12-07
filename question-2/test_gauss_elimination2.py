@@ -63,3 +63,22 @@ class Test(TestCase):
         gaussObject =   GaussElimination()
         x           =   gaussObject.guass_elimination(aug_matrix)
         print(x)
+
+    def test_create_random_aug_matrix(self):
+        gaussObject = GaussElimination(5)
+        aug_matrix  = gaussObject.create_random_aug_matrix(6)
+        print(f"aug_matrix={aug_matrix}")
+
+    def test_guass_elimination_with_random_matrix(self):
+        gaussObject = GaussElimination(6,5)
+        aug_matrix  = gaussObject.create_random_aug_matrix(6)
+        x_values = gaussObject.guass_elimination(aug_matrix)
+        print(f"x_values={x_values}")
+        print(f"xx={gaussObject}")
+
+    def test_guass_elimination_with_random_matrix_without_pp(self):
+        gaussObject = GaussElimination(6,5,False)
+        aug_matrix  = gaussObject.create_random_aug_matrix(6)
+        x_values = gaussObject.guass_elimination(aug_matrix)
+        print(f"x_values={x_values}")
+        print(f"xx={gaussObject}")

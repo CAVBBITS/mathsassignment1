@@ -2,6 +2,7 @@
 # It also counts the number of additions, multiplications
 # and divisions performed during guassian elimination.
 import numpy as np
+import random
 
 class ERROR_IN_PARTITIAL_PIVOT_STEPS(Exception):
     def __init__(self, message):
@@ -22,11 +23,28 @@ class ERROR_IN_BACK_SUBSTITUTION_STEPS(Exception):
 class GaussElimination:
     """
         GaussElimination is the class which initializes parameters.
-        The constructor expects precision.  Default precision is 5
-    """
-    def __init__(self,precision=5):
-        self.precision = precision
+        The constructor expects element_precision and  compute_precision.  Default values for both 5
+        element_precision: used while creating the ramdom matrix
+        compute_precision : used while calculating the matrix
 
+    """
+    def __init__(self, compute_precision=5,element_precision=5,apply_partial_pivot=True):
+        self.precision = compute_precision
+        self.element_precision = element_precision
+        self.apply_partial_pivot = apply_partial_pivot
+        self.additions_cnt         = 0
+        self.multiplications_cnt   = 0
+        self.divisions_cnt         = 0
+
+    def __str__(self) -> str:
+        output = f""" additions_cnt={self.additions_cnt}
+                      multiplications_cnt={self.multiplications_cnt}
+                      divisions_cnt={self.divisions_cnt}
+                      apply_partial_pivot={self.apply_partial_pivot}
+                      precision={self.precision}
+                      element_precision={self.element_precision}
+                    """
+        return (output)
 
     def partial_pivot(self,a_matrix:np.array, head_row_index:int)->np.array:
         """
@@ -70,11 +88,17 @@ class GaussElimination:
 
         for i in range(0, len(a_matrix) - 1, 1):
             cc = i
-            a_matrix = self.partial_pivot(a_matrix,i)
+
+            if(self.apply_partial_pivot):
+                print("partial pivot is applied")
+                a_matrix = self.partial_pivot(a_matrix,i)
             for nr in range (i+1, len(a_matrix), 1):
                 coefficient = round(a_matrix[nr][cc] / a_matrix[i][cc],self.precision)
+                self.divisions_cnt+=1
                 for cc1 in range(cc, len(a_matrix[0]), 1):
                     a_matrix[nr, cc1] = round(a_matrix[nr, cc1] - (coefficient * a_matrix[i, cc1]),self.precision)
+                    self.multiplications_cnt+=1
+                    self.additions_cnt+=1
 
 
         if a_matrix[len(a_matrix) - 1, len(a_matrix) - 1] == 0:
@@ -98,6 +122,7 @@ class GaussElimination:
         n       = len(a_matrix)
         x       = np.zeros(n, dtype='float32')
         x[n-1]  = round(a_matrix[n-1, n] / a_matrix[n-1, n-1],self.precision)
+        self.divisions_cnt+=1
         ## remember x[n-1] already filled so start from n-2
 
 
@@ -105,8 +130,13 @@ class GaussElimination:
             coproduct = 0
             for j in range (i+1, n):
                 coproduct = round(coproduct + a_matrix[i, j] * x[j],self.precision)
+                self.multiplications_cnt += 1
+                self.additions_cnt+1
                 print(f"coproduct={coproduct} i={i} j={j} x[j={j}] = {x[j]} and a_matrix[i={i}, j={j}] = {a_matrix[i, j]}")
             x[i] = round((1 / a_matrix[i, i]) * (a_matrix[i, n] - coproduct),self.precision)
+            self.divisions_cnt += 1
+            self.multiplications_cnt += 1
+            self.additions_cnt + 1
         return x
 
 
@@ -135,4 +165,16 @@ class GaussElimination:
 
         return None
 
+
+    def create_random_aug_matrix(self,n:int)->np.array:
+        """
+        This creates a random matrix with n - rows   and n+1 columns with given precision
+        :param n:
+        :return:
+        """
+        data        = []
+        for x in range(0,n*(n+1)):
+            data.append(round(random.uniform(0, 100),self.element_precision))
+        a_matrix    = np.array(data).reshape(n,n+1)
+        return a_matrix
 
