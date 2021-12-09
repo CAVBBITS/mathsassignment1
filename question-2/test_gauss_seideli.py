@@ -11,7 +11,7 @@ class Test(TestCase):
         x_vector   = gaussJacobi.guass_siedel_iterate_function(matrix,rhs_vector)
         print(f"x_vector={x_vector}")
 
-    def test_guass_seidel_iterate_function_2(self):
+    def test_guass_seidel_iterate_function_3(self):
         gaussJacobi = Gausssiedel(3, 0, 0.001)
         matrix = np.array([2, 0, 0.0, 0.0, 0, 2, 0, 0, 0, 0, 3, 0.0, 0., 0., 0., 2.]).reshape(4, 4)
         rhs_vector = np.array([1,1,1,1.0]).reshape(4, 1)

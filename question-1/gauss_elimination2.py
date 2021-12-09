@@ -35,6 +35,10 @@ class GaussElimination:
         self.additions_cnt         = 0
         self.multiplications_cnt   = 0
         self.divisions_cnt         = 0
+    def reset_counts(self):
+        self.additions_cnt         = 0
+        self.multiplications_cnt   = 0
+        self.divisions_cnt         = 0
 
     def __str__(self) -> str:
         output = f""" additions_cnt={self.additions_cnt}
@@ -70,6 +74,8 @@ class GaussElimination:
             temp                            =   np.array(a_matrix[max_value_row_index])
             a_matrix[max_value_row_index]   =   a_matrix[head_row_index]
             a_matrix[head_row_index]        =   temp
+            #
+            print("partial pivot is applied")
 
         if a_matrix[max_value_row_index, head_col_index] == 0:
             raise  ERROR_IN_PARTITIAL_PIVOT_STEPS(f" Multiple solutions exist as augmented matrix = {a_matrix} "
@@ -90,7 +96,6 @@ class GaussElimination:
             cc = i
 
             if(self.apply_partial_pivot):
-                print("partial pivot is applied")
                 a_matrix = self.partial_pivot(a_matrix,i)
             for nr in range (i+1, len(a_matrix), 1):
                 coefficient = round(a_matrix[nr][cc] / a_matrix[i][cc],self.precision)
@@ -132,7 +137,7 @@ class GaussElimination:
                 coproduct = round(coproduct + a_matrix[i, j] * x[j],self.precision)
                 self.multiplications_cnt += 1
                 self.additions_cnt+1
-                print(f"coproduct={coproduct} i={i} j={j} x[j={j}] = {x[j]} and a_matrix[i={i}, j={j}] = {a_matrix[i, j]}")
+                # print(f"coproduct={coproduct} i={i} j={j} x[j={j}] = {x[j]} and a_matrix[i={i}, j={j}] = {a_matrix[i, j]}")
             x[i] = round((1 / a_matrix[i, i]) * (a_matrix[i, n] - coproduct),self.precision)
             self.divisions_cnt += 1
             self.multiplications_cnt += 1

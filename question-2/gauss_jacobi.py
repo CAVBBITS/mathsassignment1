@@ -49,12 +49,16 @@ class GaussJacobi:
 
         if len(v1)!=len(v2) :
             return False
+        converge_square = 0.0
         #print(f""" comparing v1={v1} and \n v2={v2} vectors""")
         for i in range (0,len(v1)):
             diff = abs(round(abs(v1[i,0]) - abs(v2[i, 0]),self.precision))
+            converge_square = converge_square + (diff * diff)
             #print(f"""self.adjustable_error={self.epsilon} and diff = {diff}""")
             if diff >self.epsilon:
+                print(f"converge_square={pow(converge_square, 0.5)}")
                 return False
+        print(f"converge_square={pow(converge_square, 0.5)}")
         return True
 
     def get_matrix_fobo_norm(self,matrix)->float:
@@ -73,7 +77,7 @@ class GaussJacobi:
         return norm
 
 
-    def is_nn_matrix_to_diagnolly_dominant(self,matrix: np.array) -> bool:
+    def is_nn_matrix_diagnolly_dominant(self, matrix: np.array) -> bool:
         """
          is_nn_matrix_to_diagnolly_dominant checks whether given matrix is diagonally dominant
          Throws an exception if the given matrix is not nXn matrix
@@ -166,7 +170,7 @@ class GaussJacobi:
         # declare few variables to process the algorthm
 
         try:
-            if self.is_nn_matrix_to_diagnolly_dominant(matrix) == False:
+            if self.is_nn_matrix_diagnolly_dominant(matrix) == False:
                 raise MATRIX_IS_NOT_DIAGONALLY_DOMINANT(f"Matrix {matrix} is not diagonally dominant")
 
             matrix_fobo_norm = self.get_matrix_fobo_norm(matrix)
