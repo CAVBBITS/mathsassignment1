@@ -24,13 +24,14 @@ class GaussJacobi:
     def __init__(self, compute_precision=5, element_precision=5, adjustable_error=0.001, apply_rows_interchange=False):
         self.precision                  = compute_precision
         self.element_precision          = element_precision
-        self.adjustable_error          = adjustable_error
+        self.epsilon          = adjustable_error
         self.apply_rows_interchange     = apply_rows_interchange
         self.additions_cnt         = 0
         self.multiplications_cnt   = 0
         self.divisions_cnt         = 0
         self.number_of_iterations  = 0
         self.diff_dict             = {}
+        self.max_allowed_iterations=20
 
     def __str__(self) -> str:
         output = f""" additions_cnt={self.additions_cnt}
@@ -39,7 +40,7 @@ class GaussJacobi:
                       apply_partial_pivot={self.apply_rows_interchange}
                       precision={self.precision}
                       element_precision={self.element_precision}
-                      adjustable_error={self.adjustable_error}
+                      adjustable_error={self.epsilon}
                       number_of_iterations={self.number_of_iterations}
                     """
         return (output)
@@ -48,10 +49,11 @@ class GaussJacobi:
 
         if len(v1)!=len(v2) :
             return False
-        print(f""" comparing v1={v1} and \n v2={v2} vectors""")
+        #print(f""" comparing v1={v1} and \n v2={v2} vectors""")
         for i in range (0,len(v1)):
-            diff = abs(round(v1[i,0], self.precision) - round(v2[i, 0], self.precision))-self.adjustable_error
-            if(diff>0):
+            diff = abs(round(abs(v1[i,0]) - abs(v2[i, 0]),self.precision))
+            #print(f"""self.adjustable_error={self.epsilon} and diff = {diff}""")
+            if diff >self.epsilon:
                 return False
         return True
 
@@ -112,21 +114,30 @@ class GaussJacobi:
                 coproduct = 0.0
                 for j in range(0,n):
                     if i!=j:
-                        coproduct += (matrix[i,j])*prev_vals[i,0]
+                        #print(f"""matrix[{i},{j}] = {matrix[i, j]} and prev_vals[{j},0]={prev_vals[j, 0]}""")
+                        coproduct += (matrix[i,j])*prev_vals[j,0]
                         self.additions_cnt+=1
                         self.multiplications_cnt+=1
+                # print(f"i={i} coproduct={coproduct} and rhs_vector[i,0]={rhs_vector[i,0]} and matrix[i,i]={matrix[i,i]} "
+                #       f" and prev vector = {prev_vals} and curr_vector={curr_vals}")
                 curr_vals[i,0] = round((rhs_vector[i,0] - coproduct)/matrix[i,i],self.precision)
                 self.additions_cnt+=1
                 self.divisions_cnt+=1
             norm = self.get_matrix_fobo_norm(curr_vals)
 
             print(f""" for iteration {self.number_of_iterations} norm is = {norm} and matrix = {curr_vals} """)
+            compared_matrix_values =  False
+            if self.number_of_iterations > 0:
+                compared_matrix_values = self.compare_vectors_with_adjustable_error(prev_vals, curr_vals)
+            print(f"compared_matrix_values={compared_matrix_values} v1={prev_vals} and v2={curr_vals}")
 
-
-            if self.number_of_iterations > 0 and self.compare_vectors_with_adjustable_error(prev_vals, curr_vals):
+            if compared_matrix_values:
                 return curr_vals
             self.number_of_iterations += 1
             prev_vals = curr_vals
+            if self.number_of_iterations > self.max_allowed_iterations:
+                print(f" Matrices are not converging after {self.max_allowed_iterations} and hence stoping the program ")
+                return prev_vals
 
         ## mostly the program doesn reach this statements
         return curr_vals;

@@ -6,7 +6,6 @@ import random
 import numpy as np
 
 
-
 class ERROR_IN_DIAGNALLY_DOMINANT_CONVERSION(Exception):
     def __init__(self, message):
         self.message = message
@@ -17,23 +16,22 @@ class MATRIX_IS_NOT_DIAGONALLY_DOMINANT(Exception):
         self.message = message
         super().__init__(self.message)
 
-class GaussSeidel:
+class Gausssiedel:
     """
-        GaussElimination is the class which initializes parameters.
-        The constructor expects element_precision and  compute_precision.  Default values for both 5
-        element_precision: used while creating the ramdom matrix
-        compute_precision : used while calculating the matrix
+
 
     """
-    def __init__(self, compute_precision=5, element_precision=5, compare_precision=3,apply_rows_interchange=True):
+    def __init__(self, compute_precision=5, element_precision=5, adjustable_error=0.001, apply_rows_interchange=False):
         self.precision                  = compute_precision
         self.element_precision          = element_precision
-        self.compare_precision          = compare_precision
+        self.epsilon          = adjustable_error
         self.apply_rows_interchange     = apply_rows_interchange
         self.additions_cnt         = 0
         self.multiplications_cnt   = 0
         self.divisions_cnt         = 0
         self.number_of_iterations  = 0
+        self.diff_dict             = {}
+        self.max_allowed_iterations=20
 
     def __str__(self) -> str:
         output = f""" additions_cnt={self.additions_cnt}
@@ -42,18 +40,20 @@ class GaussSeidel:
                       apply_partial_pivot={self.apply_rows_interchange}
                       precision={self.precision}
                       element_precision={self.element_precision}
-                      compare_precision={self.compare_precision}
+                      adjustable_error={self.epsilon}
                       number_of_iterations={self.number_of_iterations}
                     """
         return (output)
 
-    def compare_vectors(self, v1,v2)->bool:
+    def compare_vectors_with_adjustable_error(self, v1, v2)->bool:
 
         if len(v1)!=len(v2) :
             return False
-
+        #print(f""" comparing v1={v1} and \n v2={v2} vectors""")
         for i in range (0,len(v1)):
-            if round(v1[i,0],self.compare_precision) != round(v2[i,0],self.compare_precision) :
+            diff = abs(round(abs(v1[i,0]) - abs(v2[i, 0]),self.precision))
+            #print(f"""self.adjustable_error={self.epsilon} and diff = {diff}""")
+            if diff >self.epsilon:
                 return False
         return True
 
@@ -68,12 +68,12 @@ class GaussSeidel:
         norm =0.0
         for i in range(0, rows):
             for j in range(0,cols):
-                norm += pow(matrix[i,j],2)
-        norm = pow(norm,0.5)
+                norm += round(pow(matrix[i,j],2),self.precision)
+        norm = round(pow(norm,0.5),self.precision)
         return norm
 
 
-    def is_nn_matrix_to_diagnolly_dominant(matrix: np.array) -> bool:
+    def is_nn_matrix_to_diagnolly_dominant(self,matrix: np.array) -> bool:
         """
          is_nn_matrix_to_diagnolly_dominant checks whether given matrix is diagonally dominant
          Throws an exception if the given matrix is not nXn matrix
@@ -89,7 +89,7 @@ class GaussSeidel:
         for i in range(0, rows_size):
             row_magnitude_sum = 0.0
             for j in range(0, col_szie):
-                if i != j:
+                if i!=j:
                     row_magnitude_sum += abs(matrix[i, j])
             if (row_magnitude_sum > matrix[i, i]):
                 print(f""" Given matrix {matrix} is not diagnolly dominant at row {i} and rows values {matrix[i]}""")
@@ -97,7 +97,7 @@ class GaussSeidel:
         return True
 
 
-    def guass_seidel_iterate_function(self, matrix, rhs_vector):
+    def guass_siedel_iterate_function(self, matrix, rhs_vector):
         """
          guass_seidel_iterate_function, applies the iterate model calculates the final x values
          The iterations continue till the current and previous x values are same with defined precision
@@ -106,28 +106,40 @@ class GaussSeidel:
         :return:
         """
         n           = len(matrix)
-        prev_vals   = np.zeros(n, dtype='float32')
+        prev_vals   = np.zeros(n, dtype='float32').reshape(n,1)
 
         while True:
-            curr_vals = np.zeros(n, dtype='float32')
+            curr_vals           = np.zeros(n, dtype='float32').reshape(n,1)
+            curr_substitue_vals = np.array(prev_vals)
             for i in range(0,n):
                 coproduct = 0.0
                 for j in range(0,n):
-                    if(i!=j):
-                        ## mostly the change between seidel and gauss is substitution of current iteration values itself
-                        coproduct += (matrix[i,j])*curr_vals[i]
+                    if i!=j:
+                        #print(f"""matrix[{i},{j}] = {matrix[i, j]} and prev_vals[{j},0]={prev_vals[j, 0]}""")
+                        coproduct += (matrix[i,j])*curr_substitue_vals[j,0]
                         self.additions_cnt+=1
                         self.multiplications_cnt+=1
-                curr_vals[i] = round((rhs_vector[i,0] - coproduct)/matrix[i,i],self.precision)
+                # print(f"i={i} coproduct={coproduct} and rhs_vector[i,0]={rhs_vector[i,0]} and matrix[i,i]={matrix[i,i]} "
+                #       f" and prev vector = {prev_vals} and curr_vector={curr_vals} and curr_substitue_vals={curr_substitue_vals}")
+                curr_vals[i,0]              = round((rhs_vector[i,0] - coproduct)/matrix[i,i],self.precision)
+                curr_substitue_vals[i,0]    = curr_vals[i,0]
                 self.additions_cnt+=1
                 self.divisions_cnt+=1
             norm = self.get_matrix_fobo_norm(curr_vals)
-            print(f""" seidel for iteration {self.number_of_iterations} norm is = {norm} and matrix = {curr_vals} """)
-            self.number_of_iterations += 1
 
-            if self.compare_vectors(prev_vals,curr_vals):
+            print(f""" for iteration {self.number_of_iterations} norm is = {norm} and matrix = {curr_vals} """)
+            compared_matrix_values =  False
+            if self.number_of_iterations > 0:
+                compared_matrix_values = self.compare_vectors_with_adjustable_error(prev_vals, curr_vals)
+            print(f"compared_matrix_values={compared_matrix_values} v1={prev_vals} and v2={curr_vals}")
+
+            if compared_matrix_values:
                 return curr_vals
-            prev_vals = curr_vals[i,i]
+            self.number_of_iterations += 1
+            prev_vals = curr_vals
+            if self.number_of_iterations > self.max_allowed_iterations:
+                print(f" Matrices are not converging after {self.max_allowed_iterations} and hence stoping the program ")
+                return prev_vals
 
         ## mostly the program doesn reach this statements
         return curr_vals;
@@ -136,9 +148,9 @@ class GaussSeidel:
 
 
 
-    def guass_seidel(self, matrix:np.array,rhs_vector:np.array)->np.array:
+    def guass_siedel(self, matrix:np.array, rhs_vector:np.array)->np.array:
         """
-        guass_seidel, this first checks whether the matrix is diagonally dominant or not
+        guass_siedel, this first checks whether the matrix is diagonally dominant or not
         and if the matrix is diagonally dominant then it calculates values
         :param matrix:
         :param rhs_vector:
@@ -160,8 +172,8 @@ class GaussSeidel:
                 raise MATRIX_IS_NOT_DIAGONALLY_DOMINANT(f"Matrix {matrix} is not diagonally dominant")
 
             matrix_fobo_norm = self.get_matrix_fobo_norm(matrix)
-            print(f""" Seidel input matrix={matrix} and matrix_fobo_norm={matrix_fobo_norm}""")
-            final_x_vector  = self.guass_seidel_iterate_function(matrix,rhs_vector)
+            print(f""" siedel input matrix={matrix} and matrix_fobo_norm={matrix_fobo_norm}""")
+            final_x_vector  = self.guass_siedel_iterate_function(matrix, rhs_vector)
             return final_x_vector
         except Exception as e:
             print(f"Exception {e}")
